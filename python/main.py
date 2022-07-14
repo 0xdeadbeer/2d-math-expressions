@@ -8,6 +8,7 @@ import math
 import random 
 import re
 import pprint
+from unittest import result
 
 # inserts 
 sys.path.insert(0, ".")
@@ -281,21 +282,19 @@ class ProgramSettings():
         result_array = [None] * size 
         last_token = None
 
-        levels = tree.keys()
-        highest_level = max(levels)
-        lowest_level = min(levels)
+        levels = list(tree.keys())
+        levels.sort(reverse=True)
 
-
-        for level in range(highest_level, lowest_level-1, -1): 
+        for level in levels: 
             
             level = tree[level] 
             
-            privileges = level["privileges"].keys()
-            highest_privilege = max(privileges) 
-            lowest_privilege = min(privileges) 
+            privileges = list(level["privileges"].keys())
+            privileges.sort()
 
-            for privilege in range(lowest_privilege, highest_privilege+1, 1): 
-
+            for privilege in privileges: 
+                
+                print (level["privileges"].keys())
                 privilege = level["privileges"][privilege]
                 privilege_num = privilege["privilege"]
 
@@ -340,8 +339,7 @@ def printTree(root, level=0):
     printTree(root.right, level + 1)
 
 def main(): 
-    # expression = input("Enter expression: ")
-    expression = "1+2*34*(1+2*3)"
+    expression = input("Enter expression: ")
     expression = str(expression).strip()
     
 
@@ -356,7 +354,12 @@ def main():
     tree = ProgramSettings.generate_data_tree(tokens, privileges, levels) 
 
     result_array = ProgramSettings.generate_result(len(tokens), tree)
-    printTree(result_array[0])
+    
+    result = result_array[0]
+    print ("Expression -> " + expression)
+    print ("Result -> " + str(result))
+    print ("Result tree -> ")
+    printTree(result)
 
 if __name__ == "__main__":
     main() 
