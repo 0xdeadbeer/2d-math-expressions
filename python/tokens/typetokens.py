@@ -7,10 +7,9 @@ class TypeToken:
     def __init__(self, value, privilege ): 
         self.value = value
         self.privilege = privilege
-
+    
     def __str__ (self): 
         return str(self.value)
-
 class Number (TypeToken): 
     pass 
 

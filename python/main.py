@@ -7,6 +7,7 @@ import sys
 import math 
 import random 
 import re
+import pprint
 
 # inserts 
 sys.path.insert(0, ".")
@@ -169,7 +170,40 @@ class ProgramSettings():
 
     @staticmethod 
     def check_token_rules(tokens_array): 
-        return True
+        return True # TODO
+
+    @staticmethod 
+    def generate_levels_array(privileges_array, tokens_array): 
+        
+        levels_array = [] 
+        brackets_trace = [] 
+        level = 0
+
+        for index, privilege in enumerate(privileges_array): # TODO: implement function that checks whether it should count it in
+            value = str(tokens_array[index].value)
+            if (privilege != 5): 
+                levels_array.append(level)
+                continue
+
+            if (value == "("):
+                levels_array.append(level) 
+                brackets_trace.append(1)
+                
+                level += 1 
+            elif (value == ")"): 
+                if (level <= 0 or len(brackets_trace) <= 0): 
+                    raise InvalidExpression("Program error..")
+
+                level -= 1
+                levels_array.append(level)
+                brackets_trace.pop()
+            else: 
+                raise InvalidExpression("Program error..")
+
+        if (len(brackets_trace) > 0): 
+            raise InvalidExpression("Program error..")
+
+        return levels_array 
 
     @staticmethod
     def scan_tokens(expression): 
@@ -189,22 +223,140 @@ class ProgramSettings():
         if (not ProgramSettings.check_token_rules(tokens_array)):
             raise InvalidExpression("Given expression is invalid") 
         
+        privileges_array = [ token.privilege for token in tokens_array ]
 
+        # find out the levels array
+        levels_array = ProgramSettings.generate_levels_array(privileges_array, tokens_array)
 
+        # remove the 5's 
+        for index, privilege in enumerate(privileges_array): 
+            if (privilege == 5):
+                privileges_array.pop(index)
+                tokens_array.pop(index)
+                levels_array.pop(index)
+        
         return [tokens_array, privileges_array, levels_array]
 
+    @staticmethod 
+    def generate_data_tree(tokens, privileges, levels): 
+
+        tree = {}
+
+        for index, token in enumerate(tokens): 
+
+            level = levels[index]
+            privilege = privileges[index]
+
+            # blacklist the ones that we dont need 
+            if (privilege == 5):
+                continue 
+
+            if (level not in tree): 
+                tree[level] = {"level": level, "privileges": {}}
+
+            if privilege not in tree[level]["privileges"]: 
+                tree[level]["privileges"][privilege] = {"privilege": privilege, "elements": []}
+
+            tree[level]["privileges"][privilege]["elements"].append({
+                "index": index, 
+                "value": token
+            })
+
+        return tree 
+
+    @staticmethod 
+    def update_elements(token, results_array, index, update_index, incrementer): 
+        _index = index + update_index 
+        if (len(results_array) > _index and _index >= 0):
+            if (isinstance(results_array[_index], tokens.tokens.Operator)):
+                ProgramSettings.update_elements(token, results_array, _index, update_index, incrementer)
+
+            results_array[_index] = token 
+        
+
+
+    @staticmethod
+    def generate_result(size, tree):
+        
+        result_array = [None] * size 
+        last_token = None
+
+        levels = tree.keys()
+        highest_level = max(levels)
+        lowest_level = min(levels)
+
+
+        for level in range(highest_level, lowest_level-1, -1): 
+            
+            level = tree[level] 
+            
+            privileges = level["privileges"].keys()
+            highest_privilege = max(privileges) 
+            lowest_privilege = min(privileges) 
+
+            for privilege in range(lowest_privilege, highest_privilege+1, 1): 
+
+                privilege = level["privileges"][privilege]
+                privilege_num = privilege["privilege"]
+
+                for element in privilege["elements"]: 
+
+                    index = element["index"] 
+                    token = element["value"]
+
+                    if (isinstance(token, tokens.typetokens.Number)):
+                        token = tokens.tokens.Number(token.value)
+                    elif (isinstance(token, tokens.typetokens.Variable)):
+                        token = tokens.tokens.Variable(token.value)
+                    elif (isinstance(token, tokens.typetokens.Symbol)):
+
+                        left_index = index - 1
+                        right_index = index + 1 
+                        left = result_array[left_index]
+                        right = result_array[right_index]
+
+                        token = tokens.tokens.Operator(left, right, privilege_num, token.value)
+    
+                        ProgramSettings.update_elements(token, result_array, index, 1, 1)
+                        ProgramSettings.update_elements(token, result_array, index, -1, -1)
+
+                    else: 
+                        
+                        raise InvalidExpression("Program error..")
+
+                    result_array[index] = token 
+                    last_token = token 
+
+        return result_array 
+
+def printTree(root, level=0):
+    try:
+        print("  " * level, root.label)
+    except Exception: 
+        print ("  " * level, root.value)
+        return 
+    
+    printTree(root.left, level + 1)
+    printTree(root.right, level + 1)
+
 def main(): 
-    expression = input("Enter expression: ")
+    # expression = input("Enter expression: ")
+    expression = "1+2*34*(1+2*3)"
     expression = str(expression).strip()
     
+
+    tokens = privileges = levels = None 
+
     try: 
         tokens, privileges, levels = ProgramSettings.scan_tokens(expression)
-        
-        print ("Tokens -> " + str(tokens)) 
-        print ("Privileges -> " + str(privileges)) 
-        print ("Levels -> " + str(levels))
     except Exception as e: 
         print (str(e))
+        return 
+
+    tree = ProgramSettings.generate_data_tree(tokens, privileges, levels) 
+
+    result_array = ProgramSettings.generate_result(len(tokens), tree)
+    printTree(result_array[0])
 
 if __name__ == "__main__":
     main() 

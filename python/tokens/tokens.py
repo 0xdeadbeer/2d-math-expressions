@@ -38,5 +38,9 @@ class Operator(Token):
         self.privilege = privilege
         self.label = label 
     
-    def __str__ (self): 
-        return str(self.left) + self.label + str(self.right)
+    def __str__ (self, level=0): 
+        # return str(self.left) + self.label + str(self.right)
+        ret = repr(self.label) + "\n\t"
+        ret += str(self.left)
+        ret += str(self.right)
+        return ret
