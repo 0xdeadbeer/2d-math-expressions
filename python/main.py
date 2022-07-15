@@ -273,14 +273,11 @@ class ProgramSettings():
                 ProgramSettings.update_elements(token, results_array, _index, update_index, incrementer)
 
             results_array[_index] = token 
-        
-
 
     @staticmethod
     def generate_result(size, tree):
         
         result_array = [None] * size 
-        last_token = None
 
         levels = list(tree.keys())
         levels.sort(reverse=True)
@@ -324,7 +321,6 @@ class ProgramSettings():
                         raise InvalidExpression("Program error..")
 
                     result_array[index] = token 
-                    last_token = token 
 
         return result_array 
 
