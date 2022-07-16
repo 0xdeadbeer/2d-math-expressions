@@ -33,7 +33,7 @@ This function will take the previously generated arrays (tokens, privileges, lev
 
 ## Generate a result 
 
-Generate Result will simply loop through the data structure tree previously created and generate a tree from that data structure.
+Generate Result will simply loop through the previously generated data structure and generate an actual tree equivalent of the given expression.
 
 # Low level overview 
 
