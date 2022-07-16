@@ -25,63 +25,25 @@ class InvalidExpression(Exception):
 
 class ProgramSettings(): 
 
-    numbers = {
-        "1": {},
-        "2": {},
-        "3": {},
-        "4": {},
-        "5": {},
-        "6": {},
-        "7": {},
-        "8": {},
-        "9": {},
-        "0": {},
-    }
-
-    vars = {
-        "a": {},
-        "b": {},
-        "c": {},
-        "d": {},
-        "e": {},
-        "f": {},
-        "g": {},
-        "h": {},
-        "i": {},
-        "j": {},
-        "k": {},
-        "l": {},
-        "m": {},
-        "n": {},
-        "o": {},
-        "p": {},
-        "q": {},
-        "r": {},
-        "s": {},
-        "t": {},
-        "u": {},
-        "v": {},
-        "w": {},
-        "x": {},
-        "y": {},
-        "z": {},
-    }
-
     symbols = {
         "+": {
-            "privilege": 3,
+            "privilege": 4,
             "label": "operator"
         },
         "-": {
-            "privilege": 3,
+            "privilege": 4,
             "label": "operator"
         },
         "*": {
-            "privilege": 2,
+            "privilege": 3,
             "label": "operator"
         },
         "/": {
-            "privilege": 2,
+            "privilege": 3,
+            "label": "operator"
+        },
+        "^": {
+            "privilege": 2, 
             "label": "operator"
         },
         "(": {
@@ -94,54 +56,41 @@ class ProgramSettings():
         },
     }
 
+    unnecessary_tokens = {
+        "(": {}, 
+        ")": {}
+    }
+
     def __init__ (self): 
         pass 
 
     @staticmethod
     def check_expession(expression): 
-        for char in expression: 
-            
-            # check if its a empty space 
-            if (not char.strip()): 
-                continue 
 
-            # check if its a number 
-            if (char in ProgramSettings.numbers): 
-                continue 
-            
-            # check if its a var 
-            if (char in ProgramSettings.vars):
-                continue 
-            
-            # check if its a valid symbol 
-            if (char in ProgramSettings.symbols): 
-                continue 
-            
-            # its something unknown 
-            return False
-            
+        symbols = "".join(["\\" + symbol for symbol in ProgramSettings.symbols.keys()])
+        regex_expression = f"^[a-z0-9{symbols}]+$"
+        if (not re.match(regex_expression, expression)):
+            return False 
         return True 
 
     @staticmethod 
-    def generate_tokens_array(expression): 
+    def isolate_elements(expression): 
         tokens_array = []
         
-        numbers = "".join(ProgramSettings.numbers.keys())
-        vars = "".join(ProgramSettings.vars.keys())
         symbols = "".join(["\\" + symbol for symbol in ProgramSettings.symbols.keys()])
 
-        regex = f"(?:[{numbers}]+)|(?:[{vars}]+)|(?:[{symbols}])"
+        regex = f"(?:[0-9]+)|(?:[a-z]+)|(?:[{symbols}])"
 
         tokens_array = re.findall(regex, expression)
 
         return tokens_array
 
     @staticmethod
-    def find_token_type(token): 
-        if (token.isnumeric()):
+    def return_token_type(token): 
+        if (re.match(r"^[0-9]+$", token)):
             return "num"
         
-        if (token in ProgramSettings.vars):
+        if (re.match(r"^[a-z]+$", token)):
             return "var"
         
         if (token in ProgramSettings.symbols): 
@@ -150,7 +99,7 @@ class ProgramSettings():
         raise InvalidExpression(f"Invalid token type {str(token)}")
 
     @staticmethod 
-    def generate_type_tokens_array(tokens_array): 
+    def convert_to_type_tokens(tokens_array): 
         type_tokens_array = [] 
 
         for token in tokens_array: 
@@ -158,7 +107,7 @@ class ProgramSettings():
             if (token.isnumeric()):
                 number = int(token)
                 type_token = tokens.typetokens.Number(number, 1) 
-            elif (token.isalpha() and token in ProgramSettings.vars):
+            elif (re.match(r"^[a-z]+$", token)):
                 type_token = tokens.typetokens.Variable(token, 1)
             elif (token in ProgramSettings.symbols):
                 privilege = ProgramSettings.symbols[token]["privilege"]
@@ -214,24 +163,23 @@ class ProgramSettings():
         if (not ProgramSettings.check_expession(expression)): 
             raise InvalidExpression("Given expression is invalid")
 
-        tokens_array = ProgramSettings.generate_tokens_array(expression)
+        tokens_array = ProgramSettings.isolate_elements(expression)
 
         if (not len(tokens_array)):
             raise InvalidExpression("Expression does not follow the expression rules")
 
-        tokens_array = ProgramSettings.generate_type_tokens_array(tokens_array) 
+        tokens_array = ProgramSettings.convert_to_type_tokens(tokens_array) 
 
         if (not ProgramSettings.check_token_rules(tokens_array)):
             raise InvalidExpression("Given expression is invalid") 
-        
+
         privileges_array = [ token.privilege for token in tokens_array ]
 
-        # find out the levels array
         levels_array = ProgramSettings.generate_levels_array(privileges_array, tokens_array)
 
-        # remove the 5's 
-        for index, privilege in enumerate(privileges_array): 
-            if (privilege == 5):
+        for index, token in enumerate(tokens_array): 
+            token_value = str(token.value) 
+            if (token_value in ProgramSettings.unnecessary_tokens):
                 privileges_array.pop(index)
                 tokens_array.pop(index)
                 levels_array.pop(index)
@@ -248,10 +196,6 @@ class ProgramSettings():
             level = levels[index]
             privilege = privileges[index]
 
-            # blacklist the ones that we dont need 
-            if (privilege == 5):
-                continue 
-
             if (level not in tree): 
                 tree[level] = {"level": level, "privileges": {}}
 
@@ -266,11 +210,11 @@ class ProgramSettings():
         return tree 
 
     @staticmethod 
-    def update_elements(token, results_array, index, update_index, incrementer): 
+    def sync_elements_near(token, results_array, index, update_index, incrementer): 
         _index = index + update_index 
         if (len(results_array) > _index and _index >= 0):
             if (isinstance(results_array[_index], tokens.tokens.Operator)):
-                ProgramSettings.update_elements(token, results_array, _index, update_index, incrementer)
+                ProgramSettings.sync_elements_near(token, results_array, _index, update_index, incrementer)
 
             results_array[_index] = token 
 
@@ -313,8 +257,8 @@ class ProgramSettings():
 
                         token = tokens.tokens.Operator(left, right, privilege_num, token.value)
     
-                        ProgramSettings.update_elements(token, result_array, index, 1, 1)
-                        ProgramSettings.update_elements(token, result_array, index, -1, -1)
+                        ProgramSettings.sync_elements_near(token, result_array, index, 1, 1)
+                        ProgramSettings.sync_elements_near(token, result_array, index, -1, -1)
 
                     else: 
                         

@@ -1,4 +1,5 @@
 #!/usr/bin/python3 
+# token objects that store their values, properties, privileges, etc. 
 
 import os 
 import sys

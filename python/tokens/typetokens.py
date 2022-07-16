@@ -1,8 +1,8 @@
 #!/usr/bin/python3 
+# simply tells us what the token we're looking at is (a number, variable, symbol, etc.)
 
 import os 
 import sys 
-
 class TypeToken: 
     def __init__(self, value, privilege ): 
         self.value = value
