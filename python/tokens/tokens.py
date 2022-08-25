@@ -22,6 +22,16 @@ class Variable(Token):
     def __str__ (self): 
         return self.value 
 
+class Pointer(Token): 
+    def __init__ (self, point): 
+        self.value = point 
+    
+    def fetch_destination(self): 
+        return self.value 
+
+    def __str__ (self): 
+        return self.value 
+
 class Brackets(Token): 
     def __init__ (self, start, content, end): 
         self.start = start, 

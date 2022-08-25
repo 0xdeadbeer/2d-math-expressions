@@ -9,6 +9,7 @@ import random
 import re
 import pprint
 from unittest import result
+import uuid 
 
 # inserts 
 sys.path.insert(0, ".")
@@ -176,20 +177,24 @@ class ProgramSettings():
         privileges_array = [ token.privilege for token in tokens_array ]
 
         levels_array = ProgramSettings.generate_levels_array(privileges_array, tokens_array)
+        new_tokens_array = [] 
+        new_privileges_array = [] 
+        new_levels_array = [] 
 
         for index, token in enumerate(tokens_array): 
             token_value = str(token.value) 
-            if (token_value in ProgramSettings.unnecessary_tokens):
-                privileges_array.pop(index)
-                tokens_array.pop(index)
-                levels_array.pop(index)
-        
-        return [tokens_array, privileges_array, levels_array]
+            if (token_value not in ProgramSettings.unnecessary_tokens):
+                new_privileges_array.append(privileges_array[index])
+                new_tokens_array.append(tokens_array[index])
+                new_levels_array.append(levels_array[index])
+
+        return [new_tokens_array, new_privileges_array, new_levels_array]
 
     @staticmethod 
     def generate_data_tree(tokens, privileges, levels): 
 
         tree = {}
+        index_dictionary = {} 
 
         for index, token in enumerate(tokens): 
 
@@ -202,26 +207,36 @@ class ProgramSettings():
             if privilege not in tree[level]["privileges"]: 
                 tree[level]["privileges"][privilege] = {"privilege": privilege, "elements": []}
 
+            token_id = str(uuid.uuid4()) 
+
             tree[level]["privileges"][privilege]["elements"].append({
                 "index": index, 
-                "value": token
+                "value": token, 
+                "id": token_id
             })
 
-        return tree 
+            index_dictionary[index] = token_id
+
+        return [ tree, index_dictionary ]
 
     @staticmethod 
-    def sync_elements_near(token, results_array, index, update_index, incrementer): 
-        _index = index + update_index 
-        if (len(results_array) > _index and _index >= 0):
-            if (isinstance(results_array[_index], tokens.tokens.Operator)):
-                ProgramSettings.sync_elements_near(token, results_array, _index, update_index, incrementer)
-
-            results_array[_index] = token 
-
-    @staticmethod
-    def generate_result(size, tree):
+    def sync_element(dictionary, target_id, pointing_id): 
+        while isinstance(dictionary[target_id], tokens.tokens.Pointer):
+            target_id =  dictionary[target_id].fetch_destination()
         
-        result_array = [None] * size 
+        dictionary[target_id] = tokens.tokens.Pointer(pointing_id)
+
+    @staticmethod 
+    def find_target(dictionary, target_id): 
+        while isinstance(dictionary[target_id], tokens.tokens.Pointer):
+            target_id =  dictionary[target_id].fetch_destination()
+                
+        return dictionary[target_id] 
+    
+    @staticmethod
+    def generate_result(tree, index_dictionary):
+        
+        result_array = {} 
 
         levels = list(tree.keys())
         levels.sort(reverse=True)
@@ -235,7 +250,6 @@ class ProgramSettings():
 
             for privilege in privileges: 
                 
-                print (level["privileges"].keys())
                 privilege = level["privileges"][privilege]
                 privilege_num = privilege["privilege"]
 
@@ -243,6 +257,7 @@ class ProgramSettings():
 
                     index = element["index"] 
                     token = element["value"]
+                    id = element["id"]
 
                     if (isinstance(token, tokens.typetokens.Number)):
                         token = tokens.tokens.Number(token.value)
@@ -252,20 +267,23 @@ class ProgramSettings():
 
                         left_index = index - 1
                         right_index = index + 1 
-                        left = result_array[left_index]
-                        right = result_array[right_index]
+                        left_id = index_dictionary[left_index]
+                        right_id = index_dictionary[right_index]
+
+
+                        left = ProgramSettings.find_target(result_array, left_id) 
+                        right = ProgramSettings.find_target(result_array, right_id) 
 
                         token = tokens.tokens.Operator(left, right, privilege_num, token.value)
     
-                        ProgramSettings.sync_elements_near(token, result_array, index, 1, 1)
-                        ProgramSettings.sync_elements_near(token, result_array, index, -1, -1)
+                        ProgramSettings.sync_element(result_array, left_id, id)
+                        ProgramSettings.sync_element(result_array, right_id, id)
 
                     else: 
                         
                         raise InvalidExpression("Program error..")
 
-                    result_array[index] = token 
-
+                    result_array[id] = token 
         return result_array 
 
 def printTree(root, level=0):
@@ -278,28 +296,44 @@ def printTree(root, level=0):
     printTree(root.left, level + 1)
     printTree(root.right, level + 1)
 
-def main(): 
-    expression = input("Enter expression: ")
-    expression = str(expression).strip()
-    
 
-    tokens = privileges = levels = None 
+def help_page(): 
+    print (" __   __                        _             ")
+    print (" \ \ / /                       (_)            ")
+    print ("  \ V / _ __  _ __ ___  ___ ___ _  ___  _ __  ")
+    print ("   > < | '_ \| '__/ _ \/ __/ __| |/ _ \| '_ \ ")
+    print ("  / . \| |_) | | |  __/\__ \__ \ | (_) | | | |")
+    print (" /_/ \_\ .__/|_|  \___||___/___/_|\___/|_| |_|")
+    print ("       | Coded by: https://github.com/osamu-kj")
+    print ("       |_|                                    ")
+
+    print ()
+    print ("Usage: python3 main.py [math expression]")
+    print ("Example: python3 main.py 1+2")
+
+def main(): 
+    if (len(sys.argv) == 1): 
+        help_page()
+        return 
+
+    expression = sys.argv[1:]
+    expression = "".join(expression)
+    expression = str(expression).strip()
+
+    tokens_ = privileges_ = levels_ = None 
 
     try: 
-        tokens, privileges, levels = ProgramSettings.scan_tokens(expression)
+        tokens_, privileges_, levels_ = ProgramSettings.scan_tokens(expression)
     except Exception as e: 
         print (str(e))
         return 
 
-    tree = ProgramSettings.generate_data_tree(tokens, privileges, levels) 
+    tree, index_dictionary  = ProgramSettings.generate_data_tree(tokens_, privileges_, levels_) 
+    result_array = ProgramSettings.generate_result(tree, index_dictionary)
 
-    result_array = ProgramSettings.generate_result(len(tokens), tree)
-    
-    result = result_array[0]
-    print ("Expression -> " + expression)
-    print ("Result -> " + str(result))
-    print ("Result tree -> ")
-    printTree(result)
+    for result in result_array: 
+        if isinstance(result_array[result], tokens.tokens.Operator):
+            printTree(result_array[result])
 
 if __name__ == "__main__":
     main() 

@@ -1,0 +1,10 @@
+{
+  "short_name": "Xpression",
+  "name": "Convert a math expression into a 2d tree data structure",
+  "icons": [
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
