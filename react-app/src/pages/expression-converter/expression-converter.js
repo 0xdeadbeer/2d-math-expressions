@@ -13,26 +13,24 @@ const ExpressionConverter = () => {
     const [resultTree, setResultTree] = useState(); 
 
     const generateTree = () => {
-        let token_info = scan_tokens(expression); 
+        try {
+            let token_info = scan_tokens(expression); 
 
-        let tokens_array = token_info["tokens_array"]; 
-        let privileges_array = token_info["privileges_array"]; 
-        let levels_array = token_info["levels_array"]; 
+            let tokens_array = token_info["tokens_array"]; 
+            let privileges_array = token_info["privileges_array"]; 
+            let levels_array = token_info["levels_array"]; 
 
-        let data_tree_outcome = generate_data_tree(tokens_array, privileges_array, levels_array);
-        
-        let tree = data_tree_outcome["tree"]; 
-        let index_dictionary = data_tree_outcome["index_dictionary"]; 
-        
-        let results = generate_result(tree, index_dictionary); 
-        let result; 
-        Object.keys(results).forEach((key) => {
-            if (results[key] instanceof OperatorToken)
-                result = results[key];  
-        }); 
+            let data_tree_outcome = generate_data_tree(tokens_array, privileges_array, levels_array);
+            
+            let tree = data_tree_outcome["tree"]; 
+            let index_dictionary = data_tree_outcome["index_dictionary"]; 
+            
+            let result = generate_result(tree, index_dictionary); 
 
-        console.log(result);
-        setResultTree(result);
+            setResultTree(result);
+        } catch (e) {
+            alert(e);
+        }
     }
 
     const outputTree = (tree) => {

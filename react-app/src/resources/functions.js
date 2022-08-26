@@ -143,7 +143,7 @@ const sync_element = (index_dictionary, target_id, pointing_id) => {
     while (index_dictionary[target_id] instanceof PointerToken)
         target_id = index_dictionary[target_id].fetch_destination(); 
 
-    index_dictionary[target_id] = new PointerToken(pointing_id); 
+    index_dictionary[target_id] = new   PointerToken(pointing_id); 
 }
 
 const find_target = (index_dictionary, target_id) => {
@@ -237,7 +237,8 @@ export const generate_data_tree = (tokens, privileges, levels) => {
 }
 
 export const generate_result = (tree, index_dictionary) => {
-    let result_array = {}
+    let calculations_array = {}
+    let result; 
 
     let levels = Object.keys(tree); 
     levels = levels.sort((a, b) => { return b - a }); 
@@ -252,10 +253,11 @@ export const generate_result = (tree, index_dictionary) => {
             let privilege = level["privileges"][privileges[privilege_index]]; 
             let privilege_number = privilege["privilege"]; 
 
-            privilege["elements"].forEach(element => {
-                let element_index = element["index"]; 
-                let token = element["value"]; 
-                let token_id = element["id"]; 
+            let elements = privilege["elements"];
+            for (let element_index = 0; element_index < elements.length; element_index++) {
+                let expression_element_index = elements[element_index]["index"]; 
+                let token = elements[element_index]["value"]; 
+                let token_id = elements[element_index]["id"]; 
                 
                 if (token instanceof NumberTypeToken) 
                     token = new NumberToken(token.value); 
@@ -264,27 +266,27 @@ export const generate_result = (tree, index_dictionary) => {
                     token = new VariableToken(token.value); 
                 
                 else if (token instanceof SymbolTypeToken) {
-                    let left_index = element_index - 1; 
-                    let right_index = element_index + 1; 
+                    let left_index = expression_element_index - 1; 
+                    let right_index = expression_element_index + 1; 
                     
                     let left_id = index_dictionary[left_index]; 
                     let right_id = index_dictionary[right_index]; 
 
-                    let left = find_target(result_array, left_id); 
-                    let right = find_target(result_array, right_id); 
+                    let left = find_target(calculations_array, left_id); 
+                    let right = find_target(calculations_array, right_id); 
 
                     token = new OperatorToken(left, right, privilege_number, token.value); 
 
-                    sync_element(result_array, left_id, token_id); 
-                    sync_element(result_array, right_id, token_id); 
+                    sync_element(calculations_array, left_id, token_id); 
+                    sync_element(calculations_array, right_id, token_id); 
                 }
 
                 else throw new Error("Program error!"); 
             
-                result_array[token_id] = token;  
-            });
+                calculations_array[token_id] = token;  
+                result = token; 
+            }
         }
     }
-
-    return result_array;
+    return result;
 }
