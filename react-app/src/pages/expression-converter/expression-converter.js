@@ -4,11 +4,13 @@ import { React, useState } from "react";
 import { Tree, TreeNode } from 'react-organizational-chart';
 
 import { scan_tokens, generate_data_tree, generate_result } from "../../resources/functions";
+import { OperatorToken } from "../../resources/tokens";
 
 const ExpressionConverter = () => {
 
     // variables 
     const [expression, setExpression] = useState(""); 
+    const [resultTree, setResultTree] = useState(); 
 
     const generateTree = () => {
         let token_info = scan_tokens(expression); 
@@ -22,8 +24,33 @@ const ExpressionConverter = () => {
         let tree = data_tree_outcome["tree"]; 
         let index_dictionary = data_tree_outcome["index_dictionary"]; 
         
-        let result_array = generate_result(tree, index_dictionary);         
-        
+        let results = generate_result(tree, index_dictionary); 
+        let result; 
+        Object.keys(results).forEach((key) => {
+            if (results[key] instanceof OperatorToken)
+                result = results[key];  
+        }); 
+
+        console.log(result);
+        setResultTree(result);
+    }
+
+    const outputTree = (tree) => {
+        if (tree == null) return; 
+
+        console.log(tree);
+
+        if (tree instanceof OperatorToken) {
+            return (
+                <TreeNode label={<div>{tree.label}</div>}>
+                    { outputTree(tree.left )}
+                    { outputTree(tree.right )}
+                </TreeNode>
+            )
+        } else 
+            return (
+                <TreeNode label={<div>{tree.value}</div>} />
+            )
     }
 
     return ( 
@@ -35,28 +62,13 @@ const ExpressionConverter = () => {
             <Box sx={{ my: 5 }} >
                 <TextField onChange={(e) => {
                     setExpression(e.target.value.trim());
-                }} sx={{ mr: 2 }} size="small" autoComplete="off" label="Enter Expression: " variant="outlined" />
+                }} sx={{ my: 2 }} size="small" autoComplete="off" fullWidth label="Enter Expression: " variant="outlined" />
                 <Button variant="contained" onClick={() => generateTree()}>Generate Tree</Button>
             </Box>
 
             <Container>
                 <Tree label={<div>Root</div>}>
-                    <TreeNode label={<div>Child 1</div>}>
-                        <TreeNode label={<div>Child 1</div>}>
-                            <TreeNode label={<div>Grand Child</div>} />
-                        </TreeNode>
-                        <TreeNode label={<div>Child 1</div>}>
-                            <TreeNode label={<div>Child 1</div>}>
-                                <TreeNode label={<div>Grand Child</div>} />
-                            </TreeNode>
-                            <TreeNode label={<div>Child 1</div>}>
-                                <TreeNode label={<div>Grand Child</div>} />
-                            </TreeNode>
-                        </TreeNode>
-                    </TreeNode>
-                    <TreeNode label={<div>Child 1</div>}>
-                        <TreeNode label={<div>Grand Child</div>} />
-                    </TreeNode>
+                    { outputTree(resultTree) }
                 </Tree>
             </Container>
         </Container>
