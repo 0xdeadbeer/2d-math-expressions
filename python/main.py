@@ -70,9 +70,7 @@ class ProgramSettings():
 
         symbols = "".join(["\\" + symbol for symbol in ProgramSettings.symbols.keys()])
         regex_expression = f"^[a-z0-9{symbols}]+$"
-        if (not re.match(regex_expression, expression)):
-            return False 
-        return True 
+        return re.match(regex_expression, expression)
 
     @staticmethod 
     def isolate_elements(expression): 
@@ -222,14 +220,14 @@ class ProgramSettings():
     @staticmethod 
     def sync_element(dictionary, target_id, pointing_id): 
         while isinstance(dictionary[target_id], tokens.tokens.Pointer):
-            target_id =  dictionary[target_id].fetch_destination()
+            target_id = dictionary[target_id].fetch_destination()
         
         dictionary[target_id] = tokens.tokens.Pointer(pointing_id)
 
     @staticmethod 
     def find_target(dictionary, target_id): 
         while isinstance(dictionary[target_id], tokens.tokens.Pointer):
-            target_id =  dictionary[target_id].fetch_destination()
+            target_id = dictionary[target_id].fetch_destination()
                 
         return dictionary[target_id] 
     
