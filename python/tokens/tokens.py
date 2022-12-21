@@ -27,7 +27,7 @@ class Pointer(Token):
         self.value = point 
     
     def fetch_destination(self): 
-        return self.point 
+        return self.value
 
     def __str__ (self): 
         return self.value 
